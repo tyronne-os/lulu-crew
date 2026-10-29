@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Amanda - Streaming Voice Agent</title>
+<style>
+  :root {
+    --mahogany:#2a1410; --gold:#c9a227; --gold-soft:#e6c86a;
+    --ink:#0d0708; --cream:#f4e7d3; --muted:#b9a48c; --red:#8b1a1a;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; color:var(--cream); font-family:"Georgia","Times New Roman",serif;
+    min-height:100vh; background:radial-gradient(1200px 600px at 50% -10%, #4a231a 0%, transparent 60%),
+                    linear-gradient(180deg,#1b0d0a,#0d0708);
+    overflow:hidden; }
+  header { border-bottom:1px solid rgba(201,162,39,.35); padding:14px 24px;
+    background:linear-gradient(180deg, rgba(60,26,18,.9), rgba(13,7,8,.65));
+    position:sticky; top:0; z-index:20; display:flex; justify-content:space-between; align-items:center; }
+  .brand { font-size:24px; letter-spacing:3px; color:var(--gold-soft); text-transform:uppercase; }
+  .brand span { font-size:10px; letter-spacing:5px; color:var(--muted); text-transform:uppercase; }
+  #status { font-size:12px; color:var(--muted); }
+
+  /* ===== LIVING PORTRAIT ===== */
+  .portrait-wrap { position:relative; width:100vw; height:82vh; display:flex;
+    align-items:center; justify-content:center; overflow:hidden; }
+  .portrait-img { width:90vw; max-width:700px; height:auto; border-radius:0;
+    filter: contrast(1.05) saturate(1.1);
+    /* Ken Burns breathing loop */
+    animation: breathe 8s ease-in-out infinite, float 6s ease-in-out infinite;
+    transform-origin: center center; }
+  @keyframes breathe {
+    0%,100% { transform: scale(1) translate(0,0); filter: contrast(1.05) saturate(1.1); }
+    50% { transform: scale(1.03) translate(-2px, -3px); filter: contrast(1.12) saturate(1.18); }
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-8px) rotate(1deg); }
+  }
+  /* Micro-movement: blink overlay */
+  .blink { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(13,7,8,0.9);
+    pointer-events:none; z-index:5; border-radius:inherit; animation: blink 5s infinite; }
+  @keyframes blink {
+    0%,94%,96%,100% { opacity:0; }
+    95% { opacity:1; }
+  }
+  /* Film grain overlay */
+  .grain { position:absolute; inset:0; pointer-events:none; z-index:4;
+    opacity:0.15; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence id='t' result='n'/%3E%3CfeDisplacementMap in='n' result='d'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23d)'/%3E%3C/svg%3E"); }
+  /* Talking mouth glow */
+  .talk-glow { position:absolute; bottom:10%; left:50%; transform:translateX(-50%);
+    width:60px; height:12px; background:var(--gold); border-radius:6px;
+    filter:blur(8px); opacity:0; transition:opacity 0.1s; z-index:3; pointer-events:none; }
+  .talk-glow.active { opacity:0.8; animation: pulse 0.3s infinite alternate; }
+  @keyframes pulse { from { transform:translateX(-50%) scale(1); opacity:0.6; }
+                     to { transform:translateX(-50%) scale(1.4); opacity:0.95; } }
+
+  /* ===== VOICE CONTROLS ===== */
+  .controls { position:absolute; bottom:24px; left:50%; transform:translateX(-50%);
+    z-index:20; display:flex; gap:12px; align-items:center; background:rgba(13,7,8,0.7);
+    padding:14px 22px; border-radius:14px; border:1px solid rgba(201,162,39,.35);
+    backdrop-filter:blur(6px); }
+  .btn-mic { width:56px; height:56px; border-radius:50%; border:none;
+    background:var(--gold); color:var(--ink); font-size:24px; cursor:pointer;
+    position:relative; box-shadow:0 0 20px rgba(201,162,39,.4); }
+  .btn-mic.recording { background:var(--red); animation:mic-pulse 1s infinite; }
+  .btn-mic:active { transform:scale(0.95); }
+  @keyframes mic-pulse { 0%,100% { box-shadow:0 0 20px rgba(139,26,26,.4); }
+                         50% { box-shadow:0 0 40px rgba(139,26,26,.8); } }
+  .btn-mic.idle { background:rgba(201,162,39,.15); color:var(--gold-soft);
+                  border:1px solid rgba(201,162,39,.4); }
+  .btn-mic.idle:hover { background:rgba(201,162,39,.3); }
+
+  .indicator { font-size:11px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--muted); min-width:100px; text-align:center; }
+  .indicator.speaking { color:var(--gold-soft); animation:typing 1.5s infinite; }
+  @keyframes typing { 0%,60%,100% { opacity:0.4; } 30% { opacity:1; } }
+
+  /* ===== TRANSCRIPT ===== */
+  .transcript { position:absolute; bottom:140px; left:50%; transform:translateX(-50%);
+    z-index:15; max-width:700px; padding:16px; background:rgba(13,7,8,0.65);
+    border:1px solid rgba(201,162,39,.25); border-radius:12px;
+    line-height:1.7; font-size:16px; color:var(--cream); }
+  .transcript .user { color:var(--gold-soft); font-weight:700; }
+  .transcript .amanda { color:var(--cream); }
+  .transcript .delta { display:inline; }
+
+  /* ===== VOLUME METER ===== */
+  .meter { position:absolute; bottom:90px; left:50%; transform:translateX(-50%);
+    z-index:10; width:200px; height:6px; background:rgba(201,162,39,.12);
+    border-radius:3px; overflow:hidden; }
+  .meter-fill { height:100%; background:linear-gradient(90deg,var(--gold),var(--gold-soft));
+    width:0%; transition:width 0.05s; }
+
+  /* ===== VOICE SELECTOR ===== */
+  .voice-select { position:absolute; top:80px; right:24px; z-index:20;
+    background:rgba(13,7,8,0.7); padding:8px 14px; border-radius:8px;
+    border:1px solid rgba(201,162,39,.35); color:var(--gold-soft);
+    font-size:11px; letter-spacing:1px; text-transform:uppercase; }
+  select { background:transparent; color:var(--cream); border:none; cursor:pointer;
+    font-family:inherit; font-size:11px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Amanda<span>Streaming Voice Agent</span></div>
+  <div id="status">initializing&hellip;</div>
+</header>
+
+<div class="portrait-wrap">
+  <img id="portrait" class="portrait-img" src="" alt="Amanda" />
+  <div class="blink"></div>
+  <div class="grain"></div>
+  <div class="talk-glow" id="talkGlow"></div>
+</div>
+
+<div class="transcript" id="transcript"></div>
+<div class="meter"><div class="meter-fill" id="meterFill"></div></div>
+<div class="controls">
+  <button class="btn-mic idle" id="btnMic" title="Hold to speak">&#128266;</button>
+  <div class="indicator" id="indicator">idle</div>
+</div>
+<div class="voice-select">
+  <select id="voiceSelect">
+    <option value="af_heart">af_heart</option>
+    <option value="af_bella">af_bella</option>
+    <option value="af_nicole">af_nicole</option>
+    <option value="af_sarah">af_sarah</option>
+    <option value="af_sky">af_sky</option>
+  </select>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const btnMic = $("#btnMic");
+const indicator = $("#indicator");
+const status = $("#status");
+const transcript = $("#transcript");
+const talkGlow = $("#talkGlow");
+const meterFill = $("#meterFill");
+const voiceSelect = $("#voiceSelect");
+const portrait = $("#portrait");
+
+// Set Amanda's portrait (use your Grok video frame or Mahogany Hall art)
+portrait.src = "https://huggingface.co/spaces/AIBRUH/crane-builder-v1/resolve/main/uploads/beryl.jpeg";
+
+let ws = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+let audioCtx = null;
+let analyser = null;
+let micStream = null;
+let currentVoice = "af_heart";
+
+// Connect WebSocket
+function connectWS() {
+  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+  ws = new WebSocket(`${protocol}//${location.host}/ws/voice`);
+  ws.onopen = () => {
+    status.textContent = "amanda online";
+    status.style.color = "var(--gold-soft)";
+    indicator.textContent = "press & hold to speak";
+  };
+  ws.onclose = () => {
+    status.textContent = "reconnecting&hellip;";
+    setTimeout(connectWS, 2000);
+  };
+  ws.onmessage = (evt) => {
+    const data = JSON.parse(evt.data);
+    switch(data.type) {
+      case "audio":
+        playAudio(data.data);
+        break;
+      case "text":
+        appendDelta(data.delta, data.final);
+        break;
+      case "status":
+        indicator.textContent = data.status.replace(/_/g," ");
+        if(data.status === "speaking") talkGlow.classList.add("active");
+        else talkGlow.classList.remove("active");
+        break;
+      case "pong": break;
+    }
+  };
+}
+
+function playAudio(b64) {
+  const bytes = atob(b64);
+  const ab = new ArrayBuffer(bytes.length);
+  const ua = new Uint8Array(ab);
+  for(let i=0;i<bytes.length;i++) ua[i]=bytes.charCodeAt(i);
+  const blob = new Blob([ab], {type:"audio/wav"});
+  const url = URL.createObjectURL(blob);
+  const audio = new Audio(url);
+  audio.volume = 1;
+  audio.play().catch(()=>{});
+  audio.onended = () => URL.revokeObjectURL(url);
+}
+
+function appendDelta(text, final) {
+  if(final) {
+    const div = document.createElement("div");
+    div.className = "amanda";
+    div.textContent = text;
+    transcript.appendChild(div);
+    transcript.scrollTop = transcript.scrollHeight;
+  } else {
+    let last = transcript.lastElementChild;
+    if(!last || last.className !== "amanda") {
+      last = document.createElement("div");
+      last.className = "amanda delta";
+      transcript.appendChild(last);
+    }
+    last.textContent += text;
+    transcript.scrollTop = transcript.scrollHeight;
+  }
+}
+
+function addUserText(text) {
+  const div = document.createElement("div");
+  div.className = "user";
+  div.textContent = "&gt; " + text;
+  transcript.prepend(div);
+}
+
+// ---- Microphone ----
+async function initMic() {
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({audio:true});
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    const src = audioCtx.createMediaStreamSource(micStream);
+    src.connect(analyser);
+  } catch(e) {
+    status.textContent = "microphone unavailable";
+  }
+}
+
+function meterTick() {
+  if(!analyser) return;
+  const arr = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(arr);
+  const avg = arr.reduce((a,b)=>a+b,0)/arr.length;
+  meterFill.style.width = Math.min(100, avg/2) + "%";
+  requestAnimationFrame(meterTick);
+}
+meterTick();
+
+function startRecording() {
+  isRecording = true;
+  audioChunks = [];
+  btnMic.className = "btn-mic recording";
+  indicator.textContent = "listening&hellip;";
+  talkGlow.classList.add("active");
+
+  mediaRecorder = new MediaRecorder(micStream, {mimeType:"audio/webm"});
+  mediaRecorder.ondataavailable = (e) => { if(e.data.size) audioChunks.push(e.data); };
+  mediaRecorder.onstop = async () => {
+    const blob = new Blob(audioChunks, {type:"audio/webm"});
+    const arrayBuffer = await blob.arrayBuffer();
+    const b64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    if(ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({type:"audio_chunk", data:b64}));
+      ws.send(JSON.stringify({type:"audio_stop"}));
+    }
+    btnMic.className = "btn-mic idle";
+    indicator.textContent = "processing&hellip;";
+    talkGlow.classList.remove("active");
+    isRecording = false;
+  };
+  mediaRecorder.start(200); // 200ms chunks
+}
+
+function stopRecording() {
+  if(mediaRecorder && isRecording) mediaRecorder.stop();
+}
+
+btnMic.addEventListener("mousedown", (e) => { e.preventDefault(); startRecording(); });
+btnMic.addEventListener("mouseup", (e) => { e.preventDefault(); stopRecording(); });
+btnMic.addEventListener("mouseleave", (e) => { e.preventDefault(); if(isRecording) stopRecording(); });
+btnMic.addEventListener("touchstart", (e) => { e.preventDefault(); startRecording(); }, {passive:false});
+btnMic.addEventListener("touchend", (e) => { e.preventDefault(); stopRecording(); }, {passive:false});
+
+// Voice selector
+voiceSelect.addEventListener("change", (e) => {
+  currentVoice = e.target.value;
+  if(ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({type:"set_voice", voice:currentVoice}));
+  }
+});
+
+// Connect
+initMic();
+connectWS();
+
+// Portrait: cycle through available Amanda/BEBE images occasionally
+const portraits = [
+  "https://huggingface.co/spaces/AIBRUH/crane-builder-v1/resolve/main/uploads/beryl.jpeg",
+  "https://huggingface.co/spaces/AIBRUH/crane-builder-v1/resolve/main/uploads/amanda.jpg",
+];
+let pi = 0;
+setInterval(() => {
+  if(document.hidden) return;
+  pi = (pi + 1) % portraits.length;
+  portrait.src = portraits[pi] + "?t=" + Date.now();
+}, 5000);
+</script>
+</body>
+</html>

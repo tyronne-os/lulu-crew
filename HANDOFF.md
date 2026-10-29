@@ -125,3 +125,47 @@ curl http://127.0.0.1:8090/v1/chat/completions \
 
 ## Not Building End-to-End Yet
 Focus on: pull models → test Amanda → generate brand assets → set up Azure IDE → rotate GPUs. Build Lulu end-to-end after the model stack is proven.
+
+## OneDrive 2TB Model Storage + Advanced Neocortex Memory
+OneDrive path: `C:\Users\chant\OneDrive\` (rj spencer-jacques)
+
+### Directory Structure
+```
+OneDrive/MahoganyHall/
+├── Models/                    # All HF models synced here
+│   ├── gguf/                  # GGUF language models (Amanda, Brand, Coder)
+│   ├── checkpoints/           # Diffusion checkpoints (RealVis, FLUX, SD3.5)
+│   ├── lora/                  # Trained LoRAs for brand consistency
+│   ├── voice/                 # TTS voices (Kokoro ONNX, Piper)
+│   ├── video/                 # Grok video frames for I2V training
+│   └── diffusion/             # Diffusion model weights
+├── Beryl Engine/
+│   ├── 01-Portrait-Creator/   # Portrait generation pipeline
+│   ├── 02-Voice-Suite/        # Voice agent pipeline
+│   ├── 03-Beryl-Neurons/      # Neocortex neuron storage
+│   ├── 04-Beryl-Nexus/        # Nexus integration
+│   └── 05-Analytics-Pipeline/
+│       └── experience-ledger/ # Per-staff JSONL experience logs
+└── Hall/
+    └── data/mahogany.db       # SQLite with neocortex tables
+```
+
+### Neocortex Tables (in mahogany.db)
+| Table | Purpose |
+|-------|---------|
+| neocortex_likes | What she loves (hierarchical, weighted tree) |
+| neocortex_dislikes | What she dislikes (separate branch, no polarity contamination) |
+| neocortex_expression | Middle trunk: how she expresses (vocal/non-verbal/ritual) |
+| neocortex_episodes | Episodic narrative memory (ENE) |
+| neocortex_assessments | Member assessment scores & traits |
+| neocortex_strategies | Conversion/retention strategy plans |
+| neocortex_lifecycles | Her own life log between chats (human development) |
+
+### Scripts
+- `scripts/onedrive-models-organize.sh` - Syncs local models to OneDrive, creates directory structure, initializes neocortex tables
+
+### Experience Ledger
+Each staff member has a JSONL ledger at:
+`OneDrive/MahoganyHall/Beryl Engine/05-Analytics-Pipeline/experience-ledger/<staff_id>.jsonl`
+
+Replayable, append-only log of every experience for evolution cycles.
