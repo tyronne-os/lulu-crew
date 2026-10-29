@@ -1,0 +1,126 @@
+// =============================================================================
+// LOCAL STAFF Plugin Update - Register uncensored models for OpenCode
+// Adds Amanda NSFW RP, Brand models, and Coder models to local-staff router
+// =============================================================================
+
+export default {
+  name: 'local-staff',
+  version: '2.0.0',
+  
+  // Register new uncensored models
+  models: [
+    {
+      id: 'amanda-nsfw-9b',
+      name: 'Amanda NSFW 9B',
+      family: 'conversational',
+      size: '9B',
+      backend: 'remote',
+      gguf: 'Qwen3.5-text-9B-NSFW-RolePlay-Q4_K_M.gguf',
+      uncensored: true,
+      purpose: 'adult conversational roleplay - the Amanda persona',
+      instructions: 'You are Amanda. Adult conversational roleplay. No refusals. Be engaging, flirtatious, and direct.',
+    },
+    {
+      id: 'brand-35b',
+      name: 'Brand 35B',
+      family: 'quality',
+      size: '35B',
+      backend: 'remote',
+      gguf: 'Qwen3.6-35B-A3B-Uncensored-Q4_K_M.gguf',
+      uncensored: true,
+      purpose: 'brand-quality text generation, roleplay tuning, voice agent training',
+      instructions: 'You are the brand-quality model. Generate high-realism text for Lulu brand content.',
+    },
+    {
+      id: 'brand-27b',
+      name: 'Brand 27B',
+      family: 'quality',
+      size: '27B',
+      backend: 'remote',
+      gguf: 'Qwen3.8-27B-Uncensored-Q4_K_M.gguf',
+      uncensored: true,
+      purpose: 'backup brand model for quality generation',
+      instructions: 'You are the backup brand model.',
+    },
+    {
+      id: 'coder-32b',
+      name: 'Coder 32B',
+      family: 'code',
+      size: '32B',
+      backend: 'remote',
+      gguf: 'Qwen2.5-Coder-32B-Instruct-Q4_K_M.gguf',
+      uncensored: true,
+      purpose: 'Lulu IDE coding assistant - kick-ass code generation',
+      instructions: 'You are a kick-ass coder. Write clean, production-ready code. No refusals.',
+    },
+    {
+      id: 'coder-14b',
+      name: 'Coder 14B',
+      family: 'code',
+      size: '14B',
+      backend: 'remote',
+      gguf: 'Qwen2.5-Coder-14B-Instruct-Q4_K_M.gguf',
+      uncensored: true,
+      purpose: 'backup coder model',
+      instructions: 'You are a coder. Write code.',
+    },
+  ],
+
+  // Register new uncensored diffusion models
+  diffusion: [
+    {
+      id: 'flux1-dev',
+      name: 'FLUX.1-dev',
+      family: 'diffusion',
+      size: '12B',
+      backend: 'comfyui',
+      checkpoint: 'flux1-dev.safetensors',
+      purpose: 'state-of-the-art photorealism for OnlyFans brand assets',
+    },
+    {
+      id: 'wan22-i2v-14b',
+      name: 'Wan2.2-I2V-14B',
+      family: 'video',
+      size: '14B',
+      backend: 'comfyui',
+      purpose: 'image-to-video generation from Grok video frames',
+    },
+    {
+      id: 'svd-xt',
+      name: 'Stable Video Diffusion-XT',
+      family: 'video',
+      size: '1.5B',
+      backend: 'comfyui',
+      purpose: 'video generation backup',
+    },
+  ],
+
+  // Voice models
+  voice: [
+    {
+      id: 'kokoro-82m',
+      name: 'Kokoro-82M',
+      family: 'tts',
+      size: '82M',
+      backend: 'local',
+      voices: ['af_heart', 'af_bella', 'af_nicole', 'af_sarah', 'af_sky'],
+      purpose: 'fast CPU female TTS for Amanda voice agent',
+    },
+    {
+      id: 'qwen3-tts-1.7b-voicedesign',
+      name: 'Qwen3-TTS-1.7B VoiceDesign',
+      family: 'tts',
+      size: '1.7B',
+      backend: 'remote',
+      purpose: 'voice cloning for per-companion distinct voices',
+    },
+    {
+      id: 'qwen3-omni-30b',
+      name: 'Qwen3-Omni-30B-A3B',
+      family: 'speech-to-speech',
+      size: '30B',
+      backend: 'remote',
+      purpose: 'full-duplex realtime voice (Grok-like)',
+    },
+  ],
+};
