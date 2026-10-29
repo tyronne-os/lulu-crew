@@ -1,0 +1,18 @@
+# Database and media
+Hall/data/mahogany.db
+Hall/Beryl\ Engine/Models/*
+Hall/Beryl\ Engine/output/*
+*.onnx
+voices/
+kokoro/
+
+# Virtual environments
+.venv/
+venv/
+
+# Logs and temp
+*.log
+/tmp/*
+
+# Sensitive keys
+keys.env
