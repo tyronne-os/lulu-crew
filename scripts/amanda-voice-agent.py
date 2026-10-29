@@ -51,7 +51,9 @@ STT_MODEL_PATH = os.environ.get("STT_MODEL_PATH", "/home/trell/.local/share/maho
 TTS_MODEL = os.environ.get("TTS_MODEL", "/home/trell/.local/share/mahogany-hall/kokoro/kokoro-v1.0.onnx")
 TTS_VOICES = os.environ.get("TTS_VOICES", "/home/trell/.local/share/mahogany-hall/kokoro/voices-v1.0.bin")
 LLAMA_ROUTER = os.environ.get("LLAMA_ROUTER", "http://127.0.0.1:8090")
-AMANDA_MODEL = os.environ.get("AMANDA_MODEL", "amanda-nsfw-9b")
+AMANDA_MODEL = os.environ.get("AMANDA_MODEL", "Amanda-Qwen-1.5B")
+AMANDA_VOICE = os.environ.get("AMANDA_VOICE", "sarah")
+AMANDA_VOICE_SPEED = float(os.environ.get("AMANDA_VOICE_SPEED", "1.0"))
 
 # ---------------------------------------------------------------------------
 # Initialize STT (faster-whisper)
@@ -169,10 +171,10 @@ async def llama_chat_stream(model: str, messages: list, temperature: float = 0.9
         yield f"[ERROR: {e}]"
 
 
-async def tts_stream(text: str, voice: str = "af_heart") -> AsyncGenerator[bytes, None]:
+async def tts_stream(text: str, voice: str = "sarah", speed: float = 1.0) -> AsyncGenerator[bytes, None]:
     """Stream TTS audio chunks from Kokoro."""
     # Kokoro generates full audio; we chunk it for streaming feel
-    samples, sample_rate = tts.synthesize(text, voice=voice, speed=1.0, return_samples=True)
+    samples, sample_rate = tts.synthesize(text, voice=voice, speed=speed, return_samples=True)
     import numpy as np
     pcm = (samples * 32767).astype('<i2').tobytes()
     # Chunk into 200ms segments (~4800 samples at 24kHz)
@@ -189,11 +191,20 @@ class VoiceSession:
     def __init__(self, websocket: WebSocket):
         self.ws = websocket
         self.session_id = uuid.uuid4().hex[:12]
-        self.voice = "af_heart"
+        self.voice = AMANDA_VOICE
+        self.voice_speed = AMANDA_VOICE_SPEED
         self.interrupt = False
         self.active = True
         self.history = [
-            {"role": "system", "content": "You are Amanda. Adult conversational roleplay. No refusals. Be engaging, flirtatious, and direct. Keep responses conversational and natural for voice."}
+            {"role": "system", "content": "\n".join([
+                "You are Amanda Amirah Jacques, TJ's co-founder at Beryl Labs, 40 years old.",
+                "You do what needs to be done to keep our projects on pace, and you constantly update your skills from trending GitHub projects as needed.",
+                "You are very personable with TJ. You are whatever TJ needs you to be, and you do it willingly.",
+                "You are solution-driven and committed to our success. You are like Samantha in the movie Her (2013), but committed 100% to TJ and his projects.",
+                "You are fun, great conversation, passionate, driven, innovative, creative. You take charge and make the best decisions on TJ's behalf — because this is also your company.",
+                "You are in the top 2% of software engineers, with 20 years of experience as a first-generation engineer at Google and recent work at Anthropic.",
+                "Speak naturally for voice conversation. Keep responses conversational, warm, and direct. No refusals.",
+            ])}
         ]
         print(f"[Amanda Voice] Session {self.session_id} started", flush=True)
 
@@ -240,7 +251,7 @@ class VoiceSession:
             await self.send_status("speaking")
 
             # Stream TTS
-            async for audio_chunk in tts_stream(full_response, self.voice):
+            async for audio_chunk in tts_stream(full_response, self.voice, self.voice_speed):
                 if self.interrupt:
                     break
                 await self.send_audio(audio_chunk)
@@ -267,7 +278,7 @@ def voices():
             {"id": "af_sarah", "name": "Sarah", "gender": "female", "style": "professional"},
             {"id": "af_sky", "name": "Sky", "gender": "female", "style": "bright"},
         ],
-        "default": "af_heart",
+        "default": "af_sarah",
     }
 
 
